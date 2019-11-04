@@ -7,8 +7,8 @@ then
 	exit
 fi
 
-source ~/ev_toolchain.sh
-make ginpot_h5_defconfig ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu-
+source /ev_toolchain.sh
+
 
 if [ $1 = "all" ]
 then
@@ -25,6 +25,19 @@ then
 	exit
 fi
 
+if [ $1 = "image" ]
+then
+	make Image ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu-
+	cp arch/arm64/boot/Image ./
+	exit
+fi
+
+if [ $1 = "modules" ]
+then
+	make modules ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu-
+	exit
+fi
+
 if [ $1 = "menuconfig" ]
 then
 	make menuconfig ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu-
@@ -34,5 +47,11 @@ fi
 if [ $1 = "clean" ]
 then
 	make clean ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu-
+	exit
+fi
+
+if [ $1 = "defconfig" ]
+then
+	make ginpot_h5_defconfig ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu-
 	exit
 fi

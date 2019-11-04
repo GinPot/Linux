@@ -99,6 +99,17 @@
 		gpio = <&r_pio 0 2 GPIO_ACTIVE_HIGH>; /* PL2 */
 		status = "okay";
 	};
+	
+    connector {
+        compatible = "hdmi-connector";
+        type = "a";
+
+        port {
+            hdmi_con_in: endpoint {
+                remote-endpoint = <&hdmi_out_con>;
+            };
+        };
+    };
 };
 
 &ehci0 {
@@ -156,4 +167,26 @@
 	usb0_id_det-gpios = <&pio 6 12 GPIO_ACTIVE_HIGH>; /* PG12 */
 	usb0_vbus-supply = <&reg_usb0_vbus>;
 	status = "okay";
+};
+
+&mixer0 {
+    status = "okay";
+};
+
+&tcon0 {
+    status = "okay";
+};
+
+&hdmi {
+    status = "okay";
+};
+
+&de {
+    status = "okay";
+};
+
+&hdmi_out {
+    hdmi_out_con: endpoint {
+        remote-endpoint = <&hdmi_con_in>;
+    };
 };
