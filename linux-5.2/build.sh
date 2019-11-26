@@ -25,14 +25,14 @@ fi
 if [ $1 = "dtb" ]
 then
 	make dtbs $OPTION || exit
-	cp arch/arm64/boot/dts/allwinner/sun50i-h5-ginpot.dtb ./
+	cp out/arch/arm64/boot/dts/allwinner/sun50i-h5-ginpot.dtb ./out
 	exit
 fi
 
 if [ $1 = "image" ]
 then
 	make Image $OPTION || exit
-	cp arch/arm64/boot/Image ./
+	cp out/arch/arm64/boot/Image ./out
 	exit
 fi
 
