@@ -612,7 +612,7 @@ static void sun4i_i2s_stop_playback(struct sun4i_i2s *i2s)
 			   SUN4I_I2S_DMA_INT_CTRL_TX_DRQ_EN,
 			   0);
 }
-
+extern int ginpot_pcm_set_gpioa6_mclk(unsigned pin, u8 config);
 static int sun4i_i2s_trigger(struct snd_pcm_substream *substream, int cmd,
 			     struct snd_soc_dai *dai)
 {
@@ -626,11 +626,13 @@ static int sun4i_i2s_trigger(struct snd_pcm_substream *substream, int cmd,
 			sun4i_i2s_start_playback(i2s);
 		else
 			sun4i_i2s_start_capture(i2s);
+		ginpot_pcm_set_gpioa6_mclk(6,3);
 		break;
 
 	case SNDRV_PCM_TRIGGER_STOP:
 	case SNDRV_PCM_TRIGGER_PAUSE_PUSH:
 	case SNDRV_PCM_TRIGGER_SUSPEND:
+		ginpot_pcm_set_gpioa6_mclk(6,7);
 		if (substream->stream == SNDRV_PCM_STREAM_PLAYBACK)
 			sun4i_i2s_stop_playback(i2s);
 		else

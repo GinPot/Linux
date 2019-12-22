@@ -52,6 +52,7 @@
 	aliases {
 		ethernet0 = &emac;
 		serial0 = &uart0;
+		i2c0 = &i2c0;
 	};
 
 	chosen {
@@ -70,6 +71,7 @@
 		status {
 			label = "nanopi:blue:status";
 			gpios = <&pio 0 10 GPIO_ACTIVE_HIGH>;
+			linux,default-trigger = "heartbeat";
 		};
 	};
 
@@ -109,6 +111,25 @@
             hdmi_con_in: endpoint {
                 remote-endpoint = <&hdmi_out_con>;
             };
+        };
+    };
+	
+	/********************WM8978 driver*****************/
+    sound_i2s {
+        compatible = "simple-audio-card";
+        simple-audio-card,name = "WM8978";
+        simple-audio-card,mclk-fs = <256>;
+        simple-audio-card,format = "i2s";
+		simple-audio-card,bitclock-master = <&cpudia>;
+		simple-audio-card,frame-master = <&cpudia>;
+        status = "okay";
+
+        cpudia: simple-audio-card,cpu {
+            sound-dai = <&i2s0>;
+        };
+
+        simple-audio-card,codec {
+            sound-dai = <&wm8978>;
         };
     };
 };
@@ -198,7 +219,28 @@
 	status = "okay";
 };
 
-
+/********************WM8978 driver*****************/
+&pio {
+	i2s0_pins: i2s0 {
+		pins = "PA18", "PA19", "PA20", "PA21";
+		function = "i2s0";
+	};
+};
+&i2c0 {
+    status = "okay";
+    wm8978: wm8978@1a {
+        compatible = "wlf,wm8978";
+        reg = <0x1a>;
+		#sound-dai-cells = <0>;
+    };
+};
+&i2s0 {
+ 	pinctrl-names = "default";
+ 	pinctrl-0 = <&i2s0_pins>;
+ 	#address-cells = <1>;
+ 	#size-cells = <0>;
+    status = "okay";
+};
 
 
 

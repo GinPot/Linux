@@ -714,6 +714,7 @@ static void sunxi_pmx_set(struct pinctrl_dev *pctldev,
 	raw_spin_unlock_irqrestore(&pctl->lock, flags);
 }
 
+static struct pinctrl_dev *ginpot_pctl;
 static int sunxi_pmx_set_mux(struct pinctrl_dev *pctldev,
 			     unsigned function,
 			     unsigned group)
@@ -728,11 +729,26 @@ static int sunxi_pmx_set_mux(struct pinctrl_dev *pctldev,
 
 	if (!desc)
 		return -EINVAL;
-
+	
+	if(g->pin == 18){
+		ginpot_pctl = pctldev;
+	}
+	
+	//printk("g->pin=%d	desc->muxval=%d  --------------GinPot\n",g->pin, desc->muxval);
+	
 	sunxi_pmx_set(pctldev, g->pin, desc->muxval);
 
 	return 0;
 }
+
+int ginpot_pcm_set_gpioa6_mclk(unsigned pin, u8 config)
+{
+	printk("pin=%d	config=%d  --------------GinPot\n",pin, config);
+	 sunxi_pmx_set(ginpot_pctl, pin, config);	//setting gpioA_6 mux to mclk
+
+	 return 0;
+}
+EXPORT_SYMBOL_GPL(ginpot_pcm_set_gpioa6_mclk);
 
 static int
 sunxi_pmx_gpio_set_direction(struct pinctrl_dev *pctldev,

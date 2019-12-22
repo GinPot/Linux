@@ -370,6 +370,8 @@ int sunxi_pinctrl_init_with_variant(struct platform_device *pdev,
 				    const struct sunxi_pinctrl_desc *desc,
 				    unsigned long variant);
 
+int ginpot_pcm_set_gpioa6_mclk(unsigned pin, u8 config);
+					
 #define sunxi_pinctrl_init(_dev, _desc) \
 	sunxi_pinctrl_init_with_variant(_dev, _desc, 0)
 
