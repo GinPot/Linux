@@ -6,3 +6,4 @@ snd-soc-audio-graph-card-objs	:= audio-graph-card.o
 obj-$(CONFIG_SND_SIMPLE_CARD_UTILS)	+= snd-soc-simple-card-utils.o
 obj-$(CONFIG_SND_SIMPLE_CARD)		+= snd-soc-simple-card.o
 obj-$(CONFIG_SND_AUDIO_GRAPH_CARD)	+= snd-soc-audio-graph-card.o
+obj-y	+= ac108-card.o

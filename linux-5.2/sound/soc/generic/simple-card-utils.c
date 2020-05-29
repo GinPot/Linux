@@ -303,7 +303,7 @@ int asoc_simple_be_hw_params_fixup(struct snd_soc_pcm_runtime *rtd,
 }
 EXPORT_SYMBOL_GPL(asoc_simple_be_hw_params_fixup);
 
-static int asoc_simple_init_dai(struct snd_soc_dai *dai,
+int asoc_simple_init_dai(struct snd_soc_dai *dai,
 				     struct asoc_simple_dai *simple_dai)
 {
 	int ret;
@@ -334,6 +334,7 @@ static int asoc_simple_init_dai(struct snd_soc_dai *dai,
 
 	return 0;
 }
+EXPORT_SYMBOL_GPL(asoc_simple_init_dai);
 
 int asoc_simple_dai_init(struct snd_soc_pcm_runtime *rtd)
 {
@@ -387,7 +388,7 @@ int asoc_simple_clean_reference(struct snd_soc_card *card)
 
 	for_each_card_prelinks(card, i, dai_link) {
 		of_node_put(dai_link->cpu_of_node);
-		of_node_put(dai_link->codecs->of_node);
+		of_node_put(dai_link->codec_of_node);
 	}
 	return 0;
 }

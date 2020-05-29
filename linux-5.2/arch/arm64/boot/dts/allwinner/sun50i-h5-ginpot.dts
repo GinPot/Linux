@@ -45,6 +45,14 @@
 
 #include <dt-bindings/gpio/gpio.h>
 
+&fixed_clock {
+	ac108_mclk: codec-mclk {
+		compatible = "fixed-clock";
+		#clock-cells = <0>;
+		clock-frequency = <24000000>;
+	};
+};
+
 / {
 	model = "GinPot H5";
 	compatible = "ginpot,h5", "allwinner,sun50i-h5";
@@ -122,7 +130,7 @@
         simple-audio-card,format = "i2s";
 		simple-audio-card,bitclock-master = <&cpudia>;
 		simple-audio-card,frame-master = <&cpudia>;
-        status = "okay";
+        status = "disabled";
 
         cpudia: simple-audio-card,cpu {
             sound-dai = <&i2s0>;
@@ -132,6 +140,34 @@
             sound-dai = <&wm8978>;
         };
     };
+
+	/********************AC108 driver*****************/
+	sound_ac108 {
+		compatible = "simple-audio-card";
+		simple-audio-card,name = "ac108-card";
+		simple-audio-card,format = "dsp_a";
+		simple-audio-card,mclk-fs = <512>;
+		
+
+		simple-audio-card,bitclock-master = <&cpu_dai>;
+		simple-audio-card,frame-master = <&cpu_dai>;
+		simple-audio-card,channels-playback-override = <4>;
+		simple-audio-card,channels-capture-override  = <4>;
+
+		status = "okay";
+
+		cpu_dai: simple-audio-card,cpu {
+			sound-dai = <&i2s0>;
+			dai-tdm-slot-num     = <4>;
+			dai-tdm-slot-width   = <32>;
+			dai-tdm-slot-tx-mask = <1 1 1 1>;
+			dai-tdm-slot-rx-mask = <1 1 1 1>;
+		};
+		codec_dai: simple-audio-card,codec {
+			sound-dai = <&ac108>;
+			clocks =  <&ac108_mclk>;
+		};
+	};
 };
 
 &ehci0 {
@@ -216,7 +252,7 @@
 		"Line Out", "LINEOUT",
 		"MIC1", "Mic",
 		"Mic",  "MBIAS";
-	status = "okay";
+	status = "disabled";
 };
 
 /********************WM8978 driver*****************/
@@ -232,7 +268,15 @@
         compatible = "wlf,wm8978";
         reg = <0x1a>;
 		#sound-dai-cells = <0>;
+		status = "disabled";
     };
+
+	ac108: ac108@3b{
+		compatible = "x-power,ac108";
+		reg = <0x3b>;
+		#sound-dai-cells = <0>;
+		data-protocol = <0>;
+	};
 };
 &i2s0 {
  	pinctrl-names = "default";

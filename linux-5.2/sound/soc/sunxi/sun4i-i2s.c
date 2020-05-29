@@ -43,6 +43,8 @@
 #define SUN4I_I2S_FMT0_WSS_MASK			GENMASK(3, 2)
 #define SUN4I_I2S_FMT0_WSS(wss)				((wss) << 2)
 #define SUN4I_I2S_FMT0_FMT_MASK			GENMASK(1, 0)
+#define SUN4I_I2S_FMT0_FMT_DSP_A			(0 << 0)
+#define SUN4I_I2S_FMT0_FMT_DSP_B			(0 << 0)
 #define SUN4I_I2S_FMT0_FMT_RIGHT_J			(2 << 0)
 #define SUN4I_I2S_FMT0_FMT_LEFT_J			(1 << 0)
 #define SUN4I_I2S_FMT0_FMT_I2S				(0 << 0)
@@ -220,9 +222,9 @@ static const struct sun4i_i2s_clk_div sun4i_i2s_mclk_div[] = {
 
 static int sun4i_i2s_get_bclk_div(struct sun4i_i2s *i2s,
 				  unsigned int oversample_rate,
-				  unsigned int word_size)
+				  unsigned int word_size,int channels)
 {
-	int div = oversample_rate / word_size / 2;
+	int div = oversample_rate / word_size / channels;
 	int i;
 
 	for (i = 0; i < ARRAY_SIZE(sun4i_i2s_bclk_div); i++) {
@@ -267,7 +269,8 @@ static bool sun4i_i2s_oversample_is_valid(unsigned int oversample)
 
 static int sun4i_i2s_set_clk_rate(struct snd_soc_dai *dai,
 				  unsigned int rate,
-				  unsigned int word_size)
+				  unsigned int word_size,
+				  int channels)
 {
 	struct sun4i_i2s *i2s = snd_soc_dai_get_drvdata(dai);
 	unsigned int oversample_rate, clk_rate;
@@ -313,7 +316,7 @@ static int sun4i_i2s_set_clk_rate(struct snd_soc_dai *dai,
 	}
 
 	bclk_div = sun4i_i2s_get_bclk_div(i2s, oversample_rate,
-					  word_size);
+					  word_size,channels);
 	if (bclk_div < 0) {
 		dev_err(dai->dev, "Unsupported BCLK divider: %d\n", bclk_div);
 		return -EINVAL;
@@ -325,7 +328,9 @@ static int sun4i_i2s_set_clk_rate(struct snd_soc_dai *dai,
 		dev_err(dai->dev, "Unsupported MCLK divider: %d\n", mclk_div);
 		return -EINVAL;
 	}
-
+	
+	dev_dbg(dai->dev, "%s: bclk_div=%d	 mclk_div=%d\n",__func__,bclk_div,mclk_div);
+	
 	/* Adjust the clock division values if needed */
 	bclk_div += i2s->variant->bclk_offset;
 	mclk_div += i2s->variant->mclk_offset;
@@ -340,7 +345,7 @@ static int sun4i_i2s_set_clk_rate(struct snd_soc_dai *dai,
 	if (i2s->variant->has_fmt_set_lrck_period)
 		regmap_update_bits(i2s->regmap, SUN4I_I2S_FMT0_REG,
 				   SUN8I_I2S_FMT0_LRCK_PERIOD_MASK,
-				   SUN8I_I2S_FMT0_LRCK_PERIOD(32));
+				   SUN8I_I2S_FMT0_LRCK_PERIOD(word_size * channels));
 
 	return 0;
 }
@@ -354,7 +359,7 @@ static int sun4i_i2s_hw_params(struct snd_pcm_substream *substream,
 	u32 width;
 
 	channels = params_channels(params);
-	if (channels != 2) {
+	if (channels > 4) {
 		dev_err(dai->dev, "Unsupported number of channels: %d\n",
 			channels);
 		return -EINVAL;
@@ -389,6 +394,10 @@ static int sun4i_i2s_hw_params(struct snd_pcm_substream *substream,
 	case 16:
 		width = DMA_SLAVE_BUSWIDTH_2_BYTES;
 		break;
+	case 32:
+		width = DMA_SLAVE_BUSWIDTH_4_BYTES;
+		break;
+	
 	default:
 		dev_err(dai->dev, "Unsupported physical sample width: %d\n",
 			params_physical_width(params));
@@ -401,27 +410,33 @@ static int sun4i_i2s_hw_params(struct snd_pcm_substream *substream,
 		sr = 0;
 		wss = 0;
 		break;
+	case 32:
+		sr = 4;
+		wss = 4;
+		break;
 
 	default:
 		dev_err(dai->dev, "Unsupported sample width: %d\n",
 			params_width(params));
 		return -EINVAL;
 	}
-
+	
+	dev_dbg(dai->dev,"%s: channels=%d	 rate=%d	params_width(params)=%d\n",__func__,channels,params_rate(params),params_width(params));
+	
 	regmap_field_write(i2s->field_fmt_wss,
 			   wss + i2s->variant->fmt_offset);
 	regmap_field_write(i2s->field_fmt_sr,
 			   sr + i2s->variant->fmt_offset);
 
 	return sun4i_i2s_set_clk_rate(dai, params_rate(params),
-				      params_width(params));
+				      params_width(params),channels);
 }
 
 static int sun4i_i2s_set_fmt(struct snd_soc_dai *dai, unsigned int fmt)
 {
 	struct sun4i_i2s *i2s = snd_soc_dai_get_drvdata(dai);
 	u32 val;
-	u32 offset = 0;
+	u32 offset = 0, ads_flag=0;
 	u32 bclk_polarity = SUN4I_I2S_FMT0_POLARITY_NORMAL;
 	u32 lrclk_polarity = SUN4I_I2S_FMT0_POLARITY_NORMAL;
 
@@ -437,6 +452,15 @@ static int sun4i_i2s_set_fmt(struct snd_soc_dai *dai, unsigned int fmt)
 	case SND_SOC_DAIFMT_RIGHT_J:
 		val = SUN4I_I2S_FMT0_FMT_RIGHT_J;
 		break;
+	case SND_SOC_DAIFMT_DSP_A:
+		val = SUN4I_I2S_FMT0_FMT_DSP_A;
+		offset = 1;
+		ads_flag = 1;
+		break;
+	case SND_SOC_DAIFMT_DSP_B:
+		val = SUN4I_I2S_FMT0_FMT_DSP_B;
+		break;
+
 	default:
 		dev_err(dai->dev, "Unsupported format: %d\n",
 			fmt & SND_SOC_DAIFMT_FORMAT_MASK);
@@ -450,7 +474,7 @@ static int sun4i_i2s_set_fmt(struct snd_soc_dai *dai, unsigned int fmt)
 		 * i2s shares the same setting with the LJ format. Increment
 		 * val so that the bit to value to write is correct.
 		 */
-		if (offset > 0)
+		if ((offset > 0) && (ads_flag == 0))
 			val++;
 		/* blck offset determines whether i2s or LJ */
 		regmap_update_bits(i2s->regmap, SUN8I_I2S_TX_CHAN_SEL_REG,
@@ -461,7 +485,7 @@ static int sun4i_i2s_set_fmt(struct snd_soc_dai *dai, unsigned int fmt)
 				   SUN8I_I2S_TX_CHAN_OFFSET_MASK,
 				   SUN8I_I2S_TX_CHAN_OFFSET(offset));
 	}
-
+	dev_dbg(dai->dev, "%s: val=%d	offset=%d\n",__func__,val,offset);
 	regmap_field_write(i2s->field_fmt_mode, val);
 
 	/* DAI clock polarity */
@@ -651,6 +675,8 @@ static int sun4i_i2s_set_sysclk(struct snd_soc_dai *dai, int clk_id,
 {
 	struct sun4i_i2s *i2s = snd_soc_dai_get_drvdata(dai);
 
+	dev_dbg(dai->dev, "%s: mclk=%d\n", __func__,freq);
+	
 	if (clk_id != 0)
 		return -EINVAL;
 
@@ -684,16 +710,16 @@ static struct snd_soc_dai_driver sun4i_i2s_dai = {
 	.capture = {
 		.stream_name = "Capture",
 		.channels_min = 2,
-		.channels_max = 2,
+		.channels_max = 4,
 		.rates = SNDRV_PCM_RATE_8000_192000,
-		.formats = SNDRV_PCM_FMTBIT_S16_LE,
+		.formats = SNDRV_PCM_FMTBIT_S16_LE | SNDRV_PCM_FMTBIT_S32_LE,
 	},
 	.playback = {
 		.stream_name = "Playback",
 		.channels_min = 2,
-		.channels_max = 2,
+		.channels_max = 4,
 		.rates = SNDRV_PCM_RATE_8000_192000,
-		.formats = SNDRV_PCM_FMTBIT_S16_LE,
+		.formats = SNDRV_PCM_FMTBIT_S16_LE | SNDRV_PCM_FMTBIT_S32_LE,
 	},
 	.ops = &sun4i_i2s_dai_ops,
 	.symmetric_rates = 1,
