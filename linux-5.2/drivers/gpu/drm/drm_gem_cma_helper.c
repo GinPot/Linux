@@ -270,6 +270,8 @@ static int drm_gem_cma_mmap_obj(struct drm_gem_cma_object *cma_obj,
 {
 	int ret;
 
+	dev_dbg(cma_obj->base.dev->dev, "%s: Enter\n", __func__);
+
 	/*
 	 * Clear the VM_PFNMAP flag that was set by drm_gem_mmap(), and set the
 	 * vm_pgoff (used as a fake buffer offset by DRM) to 0 as we want to map

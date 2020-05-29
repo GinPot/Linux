@@ -1045,6 +1045,8 @@ void drm_gem_vm_open(struct vm_area_struct *vma)
 {
 	struct drm_gem_object *obj = vma->vm_private_data;
 
+	dev_dbg(obj->dev->dev, "%s: Enter\n", __func__);
+
 	drm_gem_object_get(obj);
 }
 EXPORT_SYMBOL(drm_gem_vm_open);
@@ -1059,6 +1061,8 @@ EXPORT_SYMBOL(drm_gem_vm_open);
 void drm_gem_vm_close(struct vm_area_struct *vma)
 {
 	struct drm_gem_object *obj = vma->vm_private_data;
+
+	dev_dbg(obj->dev->dev, "%s: Enter\n", __func__);
 
 	drm_gem_object_put_unlocked(obj);
 }

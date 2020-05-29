@@ -321,6 +321,8 @@ int drm_open(struct inode *inode, struct file *filp)
 	if (!dev->open_count++)
 		need_setup = 1;
 
+	dev_dbg(dev->dev, "%s: Enter\n", __func__);
+
 	/* share address_space across all char-devs of a single device */
 	filp->f_mapping = dev->anon_inode->i_mapping;
 
@@ -458,6 +460,8 @@ int drm_release(struct inode *inode, struct file *filp)
 	struct drm_minor *minor = file_priv->minor;
 	struct drm_device *dev = minor->dev;
 
+	dev_dbg(dev->dev, "%s: Enter\n", __func__);
+
 	mutex_lock(&drm_global_mutex);
 
 	DRM_DEBUG("open_count = %d\n", dev->open_count);
@@ -507,6 +511,8 @@ ssize_t drm_read(struct file *filp, char __user *buffer,
 	struct drm_file *file_priv = filp->private_data;
 	struct drm_device *dev = file_priv->minor->dev;
 	ssize_t ret;
+
+	dev_dbg(dev->dev, "%s: Enter\n", __func__);
 
 	if (!access_ok(buffer, count))
 		return -EFAULT;
@@ -592,6 +598,8 @@ __poll_t drm_poll(struct file *filp, struct poll_table_struct *wait)
 {
 	struct drm_file *file_priv = filp->private_data;
 	__poll_t mask = 0;
+
+	dev_dbg(file_priv->minor->dev->dev, "%s: Enter\n", __func__);
 
 	poll_wait(filp, &file_priv->event_wait, wait);
 

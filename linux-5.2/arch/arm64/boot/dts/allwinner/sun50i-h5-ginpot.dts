@@ -228,23 +228,32 @@
 };
 
 /********************hdmi display driver*****************/
-&mixer0 {
-    status = "okay";
-};
-&tcon0 {
-    status = "okay";
-};
-&hdmi {
-    status = "okay";
-};
-&de {
-    status = "okay";
-};
 &hdmi_out {
     hdmi_out_con: endpoint {
         remote-endpoint = <&hdmi_con_in>;
     };
 };
+&hdmi_phy {
+	compatible = "allwinner,sunh5_hdmi_phy";
+    status = "okay";
+};
+&hdmi {
+	compatible = "allwinner,sunh5-dw-hdmi";
+    status = "okay";
+};
+&tcon0 {
+	compatible = "allwinner,sunh5-tcon-tv";
+    status = "okay";
+};
+&mixer0 {
+	compatible = "allwinner,sunh5-de2-mixer-0";
+    status = "okay";
+};
+&de {
+	compatible = "allwinner,sunh5-display-engine";
+    status = "okay";
+};
+
 
 /********************h5 audio driver*****************/
 &codec {

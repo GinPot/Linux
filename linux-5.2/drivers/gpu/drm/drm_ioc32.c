@@ -972,6 +972,8 @@ long drm_compat_ioctl(struct file *filp, unsigned int cmd, unsigned long arg)
 	drm_ioctl_compat_t *fn;
 	int ret;
 
+	dev_dbg(file_priv->minor->dev->dev, "%s: Enter: cmd=%d\n", __func__,cmd);
+	
 	/* Assume that ioctls without an explicit compat routine will just
 	 * work.  This may not always be a good assumption, but it's better
 	 * than always failing.
