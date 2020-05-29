@@ -11,7 +11,7 @@ fi
 
 BASE=$(pwd)
 OPTION="-C $PWD ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu- O=$PWD/out"
-source /ev_toolchain.sh
+source /home/wuping/work/linux/0.toolchain/gcc-linaro-7.4.1-2019.02-x86_64_aarch64-linux-gnu/ev_toolchain.sh
 
 
 if [ $1 = "all" ]
