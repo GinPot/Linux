@@ -27,7 +27,7 @@ g_tcm_usb_gadget-y		:= tcm_usb_gadget.o
 
 obj-$(CONFIG_USB_ZERO)		+= g_zero.o
 obj-$(CONFIG_USB_AUDIO)		+= g_audio.o
-obj-$(CONFIG_USB_ETH)		+= g_ether.o
+obj-y		+= g_ether.o
 obj-$(CONFIG_USB_GADGETFS)	+= gadgetfs.o
 obj-$(CONFIG_USB_FUNCTIONFS)	+= g_ffs.o
 obj-$(CONFIG_USB_MASS_STORAGE)	+= g_mass_storage.o

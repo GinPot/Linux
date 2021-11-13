@@ -11,7 +11,7 @@
 
 #include <linux/kernel.h>
 #include <linux/netdevice.h>
-
+#define CONFIG_USB_ETH_RNDIS
 #if defined USB_ETH_RNDIS
 #  undef USB_ETH_RNDIS
 #endif
