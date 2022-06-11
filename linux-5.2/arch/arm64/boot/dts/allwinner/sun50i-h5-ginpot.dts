@@ -215,6 +215,18 @@
 	status = "okay";
 };
 
+&uart1 {
+	pinctrl-names = "default";
+	pinctrl-0 = <&uart1_pins>;
+	status = "okay";
+};
+
+&uart2 {
+	pinctrl-names = "default";
+	pinctrl-0 = <&uart2_pins>;
+	status = "okay";
+};
+
 &usb_otg {
 	dr_mode = "otg";
 	status = "okay";
@@ -234,23 +246,23 @@
     };
 };
 &hdmi_phy {
-	compatible = "allwinner,sunh5_hdmi_phy";
+//	compatible = "allwinner,sunh5_hdmi_phy";
     status = "okay";
 };
 &hdmi {
-	compatible = "allwinner,sunh5-dw-hdmi";
+//	compatible = "allwinner,sunh5-dw-hdmi";
     status = "okay";
 };
 &tcon0 {
-	compatible = "allwinner,sunh5-tcon-tv";
+//	compatible = "allwinner,sunh5-tcon-tv";
     status = "okay";
 };
 &mixer0 {
-	compatible = "allwinner,sunh5-de2-mixer-0";
+//	compatible = "allwinner,sunh5-de2-mixer-0";
     status = "okay";
 };
 &de {
-	compatible = "allwinner,sunh5-display-engine";
+//	compatible = "allwinner,sunh5-display-engine";
     status = "okay";
 };
 
