@@ -1097,11 +1097,23 @@ static int uvc_video_decode_start(struct uvc_streaming *stream,
 	return data[0];
 }
 
+//static void dma_uvc_callback(void *param)
+//{
+//	struct uvc_streaming *stream = (struct uvc_streaming *)param;
+//
+//	complete(&stream->rx_dma_complete);
+//}
+
+extern void *__memcpy_aarch64_simd (void *, const void *, size_t);
 /*
  * uvc_video_decode_data_work: Asynchronous memcpy processing
  *
  * Copy URB data to video buffers in process context, releasing buffer
  * references and requeuing the URB when done.
+ 
+ memcpy						800*600		MJPEG		30Fps		CPU:5.3%
+ dma_wait					800*600		MJPEG		30Fps		CPU:6.6%
+ __memcpy_aarch64_simd		800*600		MJPEG		30Fps		CPU:4.6%
  */
 static void uvc_video_copy_data_work(struct work_struct *work)
 {
@@ -1109,10 +1121,46 @@ static void uvc_video_copy_data_work(struct work_struct *work)
 	unsigned int i;
 	int ret;
 
+//	struct uvc_streaming *stream = uvc_urb->stream;
+//	struct dma_async_tx_descriptor *tx = NULL;
+//	dma_cookie_t cookie;
+//	dma_addr_t dma_dst;
+
 	for (i = 0; i < uvc_urb->async_operations; i++) {
 		struct uvc_copy_op *op = &uvc_urb->copy_operations[i];
 
-		memcpy(op->dst, op->src, op->len);
+		//memcpy(op->dst, op->src, op->len);
+		__memcpy_aarch64_simd(op->dst, op->src, op->len);
+
+
+//		dma_dst = dma_map_single(&stream->vdev.dev, op->dst, op->len, DMA_BIDIRECTIONAL);				//把内存no cache操作
+//		if(dma_mapping_error(&stream->vdev.dev, dma_dst))
+//			uvc_printk(KERN_ERR, "dma_dst mapping failed\n");
+//
+//		tx = dmaengine_prep_dma_memcpy(stream->chan, dma_dst, op->dma_src, op->len, DMA_CTRL_ACK | DMA_PREP_INTERRUPT);
+//		if(!tx){
+//			uvc_printk(KERN_ERR, "device_prep_dma_memcpy error\n");
+//		}
+//		reinit_completion(&stream->rx_dma_complete);													//设置dma完成flag为0
+//		tx->callback = dma_uvc_callback;																//设置dma完成后的回调函数
+//		tx->callback_param = stream;
+//		cookie = tx->tx_submit(tx);																		//开始dma传输
+//		ret = dma_submit_error(cookie);																	//检测dma传输是否提交成功
+//		if(ret){
+//			uvc_printk(KERN_ERR, "dma_submit_error %d\n", cookie);
+//		}
+//		dma_async_issue_pending(stream->chan);															//dma_sync_wait()
+//
+//		//if(i >= uvc_urb->async_operations-1){
+//			if(!wait_for_completion_timeout(&stream->rx_dma_complete, msecs_to_jiffies(1000))){				//睡眠等待dma中断的回调函数唤醒
+//				dmaengine_terminate_sync(stream->chan);
+//				uvc_printk(KERN_ERR, "DMA wait_for_completion_timeout\n");
+//			}
+//		//}
+//
+//		if(dma_dst)
+//			dma_unmap_single(&stream->vdev.dev, dma_dst, op->len, DMA_BIDIRECTIONAL);
+
 
 		/* Release reference taken on this buffer. */
 		uvc_queue_buffer_release(op->buf);
@@ -1125,7 +1173,7 @@ static void uvc_video_copy_data_work(struct work_struct *work)
 }
 
 static void uvc_video_decode_data(struct uvc_urb *uvc_urb,
-		struct uvc_buffer *buf, const u8 *data, int len)
+		struct uvc_buffer *buf, const u8 *data, dma_addr_t dma_addr, int len)
 {
 	unsigned int active_op = uvc_urb->async_operations;
 	struct uvc_copy_op *op = &uvc_urb->copy_operations[active_op];
@@ -1141,6 +1189,7 @@ static void uvc_video_decode_data(struct uvc_urb *uvc_urb,
 
 	op->buf = buf;
 	op->src = data;
+	op->dma_src = dma_addr;
 	op->dst = buf->mem + buf->bytesused;
 	op->len = min_t(unsigned int, len, maxlen);
 
@@ -1335,6 +1384,7 @@ static void uvc_video_decode_isoc(struct uvc_urb *uvc_urb,
 	struct urb *urb = uvc_urb->urb;
 	struct uvc_streaming *stream = uvc_urb->stream;
 	u8 *mem;
+	dma_addr_t dma_addr;
 	int ret, i;
 
 	for (i = 0; i < urb->number_of_packets; ++i) {
@@ -1349,6 +1399,7 @@ static void uvc_video_decode_isoc(struct uvc_urb *uvc_urb,
 
 		/* Decode the payload header. */
 		mem = urb->transfer_buffer + urb->iso_frame_desc[i].offset;
+		dma_addr =  urb->transfer_dma + urb->iso_frame_desc[i].offset;
 		do {
 			ret = uvc_video_decode_start(stream, buf, mem,
 				urb->iso_frame_desc[i].actual_length);
@@ -1362,7 +1413,7 @@ static void uvc_video_decode_isoc(struct uvc_urb *uvc_urb,
 		uvc_video_decode_meta(stream, meta_buf, mem, ret);
 
 		/* Decode the payload data. */
-		uvc_video_decode_data(uvc_urb, buf, mem + ret,
+		uvc_video_decode_data(uvc_urb, buf, mem + ret, dma_addr + ret,
 			urb->iso_frame_desc[i].actual_length - ret);
 
 		/* Process the header again. */
@@ -1380,6 +1431,7 @@ static void uvc_video_decode_bulk(struct uvc_urb *uvc_urb,
 	struct urb *urb = uvc_urb->urb;
 	struct uvc_streaming *stream = uvc_urb->stream;
 	u8 *mem;
+	dma_addr_t dma_addr;
 	int len, ret;
 
 	/*
@@ -1390,6 +1442,7 @@ static void uvc_video_decode_bulk(struct uvc_urb *uvc_urb,
 		return;
 
 	mem = urb->transfer_buffer;
+	dma_addr =  urb->transfer_dma;
 	len = urb->actual_length;
 	stream->bulk.payload_size += len;
 
@@ -1424,7 +1477,7 @@ static void uvc_video_decode_bulk(struct uvc_urb *uvc_urb,
 
 	/* Prepare video data for processing. */
 	if (!stream->bulk.skip_payload && buf != NULL)
-		uvc_video_decode_data(uvc_urb, buf, mem, len);
+		uvc_video_decode_data(uvc_urb, buf, mem, dma_addr, len);
 
 	/* Detect the payload end by a URB smaller than the maximum size (or
 	 * a payload size equal to the maximum) and process the header again.
@@ -1575,6 +1628,9 @@ static void uvc_free_urb_buffers(struct uvc_streaming *stream)
 	}
 
 	stream->urb_size = 0;
+
+	if(stream->chan)
+		dma_release_channel(stream->chan);
 }
 
 /*
@@ -1628,6 +1684,15 @@ static int uvc_alloc_urb_buffers(struct uvc_streaming *stream,
 		}
 
 		if (i == UVC_URBS) {
+			dma_cap_zero(stream->dma_test_mask);
+			dma_cap_set(DMA_MEMCPY, stream->dma_test_mask); 												//Memory to memory copy
+			stream->chan = dma_request_chan_by_mask(&stream->dma_test_mask);
+			if (IS_ERR(stream->chan)) {
+				uvc_printk(KERN_ERR, "dma request channel failed\n");
+				return 0;
+			}
+			init_completion(&stream->rx_dma_complete);														//初始化dma完成flag
+
 			uvc_trace(UVC_TRACE_VIDEO, "Allocated %u URB buffers "
 				"of %ux%u bytes each.\n", UVC_URBS, npackets,
 				psize);

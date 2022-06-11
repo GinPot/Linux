@@ -19,6 +19,10 @@
 #include <media/v4l2-fh.h>
 #include <media/videobuf2-v4l2.h>
 
+#include <linux/dmaengine.h>
+#include <linux/dma-mapping.h>
+
+
 /* --------------------------------------------------------------------------
  * UVC constants
  */
@@ -505,6 +509,7 @@ struct uvc_copy_op {
 	struct uvc_buffer *buf;
 	void *dst;
 	const __u8 *src;
+	dma_addr_t dma_src;
 	size_t len;
 };
 
@@ -613,6 +618,10 @@ struct uvc_streaming {
 
 		spinlock_t lock;
 	} clock;
+
+	struct dma_chan *chan;						//DMA主结构体
+	dma_cap_mask_t dma_test_mask;				//位掩码，设置dma通道的传输类型
+	struct completion rx_dma_complete;			//dma完成flag
 };
 
 #define for_each_uvc_urb(uvc_urb, uvc_streaming) \

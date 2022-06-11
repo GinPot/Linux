@@ -1948,6 +1948,12 @@ int uvc_register_video_device(struct uvc_device *dev,
 	if (ret)
 		return ret;
 
+	ret = dma_coerce_mask_and_coherent(&vdev->dev, DMA_BIT_MASK(32));						//设置设备通过DMA方式可寻址的物理地址范围
+	if(ret){
+		uvc_printk(KERN_ERR, "dma_coerce_mask_and_coherent fail.");
+		return ret;
+	}
+
 	/* Register the device with V4L. */
 
 	/*

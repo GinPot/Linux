@@ -45,7 +45,7 @@ static void *vb2_vmalloc_alloc(struct device *dev, unsigned long attrs,
 		return ERR_PTR(-ENOMEM);
 
 	buf->size = size;
-	buf->vaddr = vmalloc_user(buf->size);
+	buf->vaddr = kzalloc(buf->size, GFP_KERNEL);//vmalloc_user(buf->size);
 	if (!buf->vaddr) {
 		pr_debug("vmalloc of size %ld failed\n", buf->size);
 		kfree(buf);
@@ -66,7 +66,7 @@ static void vb2_vmalloc_put(void *buf_priv)
 	struct vb2_vmalloc_buf *buf = buf_priv;
 
 	if (refcount_dec_and_test(&buf->refcount)) {
-		vfree(buf->vaddr);
+		kfree(buf->vaddr);
 		kfree(buf);
 	}
 }
@@ -177,11 +177,18 @@ static int vb2_vmalloc_mmap(void *buf_priv, struct vm_area_struct *vma)
 		return -EINVAL;
 	}
 
-	ret = remap_vmalloc_range(vma, buf->vaddr, 0);
+//	pr_err("vma->vm_start: 0x%p    len:%d\n", vma->vm_start, vma->vm_end - vma->vm_start);
+	ret = remap_pfn_range(vma, vma->vm_start, virt_to_phys(buf->vaddr) >> PAGE_SHIFT, vma->vm_end - vma->vm_start, vma->vm_page_prot);
 	if (ret) {
-		pr_err("Remapping vmalloc memory, error: %d\n", ret);
+		pr_err("Remapping remap_pfn_range memory, error: %d\n", ret);
 		return ret;
 	}
+
+//	ret = remap_vmalloc_range(vma, buf->vaddr, 0);
+//	if (ret) {
+//		pr_err("Remapping vmalloc memory, error: %d\n", ret);
+//		return ret;
+//	}
 
 	/*
 	 * Make sure that vm_areas for 2 buffers won't be merged together
