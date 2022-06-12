@@ -31,7 +31,7 @@ fi
 
 if [ $1 = "image" ]
 then
-	make -j4 Image $OPTION || exit
+	make  Image $OPTION || exit
 	cp out/arch/arm64/boot/Image ./out
 	exit
 fi
