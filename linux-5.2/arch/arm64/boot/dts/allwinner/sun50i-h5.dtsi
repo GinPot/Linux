@@ -76,6 +76,20 @@
 		};
 	};
 
+	reserved-memory {
+		#address-cells = <1>;
+		#size-cells = <1>;
+		ranges;
+
+		linux,cma {
+			compatible = "shared-dma-pool";
+			reusable;
+			reg = <0xb8000000 0x8000000>;
+			linux,cma-default;
+		};
+
+	};
+
 	psci {
 		compatible = "arm,psci-0.2";
 		method = "smc";
@@ -117,7 +131,7 @@
 		};
 
 		video-codec@1c0e000 {
-			compatible = "allwinner,sun50i-h5-video-engine";
+			compatible = "allwinner,sun8i-h3-cedar";
 			reg = <0x01c0e000 0x1000>;
 			clocks = <&ccu CLK_BUS_VE>, <&ccu CLK_VE>,
 				 <&ccu CLK_DRAM_VE>;
@@ -125,6 +139,7 @@
 			resets = <&ccu RST_BUS_VE>;
 			interrupts = <GIC_SPI 58 IRQ_TYPE_LEVEL_HIGH>;
 			allwinner,sram = <&ve_sram 1>;
+			status = "ok";
 		};
 
 		mali: gpu@1e80000 {
@@ -166,6 +181,18 @@
 
 			assigned-clocks = <&ccu CLK_GPU>;
 			assigned-clock-rates = <384000000>;
+		};
+	};
+	
+	ion: ion {
+		compatible = "allwinner,sunxi-ion";
+		heap_cma@0{
+			compatible = "allwinner,cma";
+			heap-name  = "cma";
+			heap-id    = <0x4>;
+			heap-base  = <0x0>;
+			heap-size  = <0x0>;
+			heap-type  = "ion_cma";
 		};
 	};
 };
